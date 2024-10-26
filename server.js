@@ -1,22 +1,17 @@
 const express = require('express');
-const sqlite3 = require('sqlite3').verbose();
+const { Pool } = require('pg'); // Import PostgreSQL client
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.static('public'));
 app.use(express.json()); // To parse JSON request bodies
 
-// Initialize the database
-const db = new sqlite3.Database('./highscores.db', (err) => {
-    if (err) {
-        console.error(err.message);
-    } else {
-        db.run(`CREATE TABLE IF NOT EXISTS highscores (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            name TEXT NOT NULL,
-            wins INTEGER NOT NULL
-        )`);
-    }
+// Set up PostgreSQL connection
+const pool = new Pool({
+    connectionString: process.env.DATABASE_URL, // Use Render's DATABASE_URL environment variable
+    ssl: {
+        rejectUnauthorized: false, // Use SSL connection
+    },
 });
 
 let currentNumber = 1000; // Starting number set to 1000
@@ -35,26 +30,40 @@ app.get('/api/reset/:start?', (req, res) => {
 });
 
 // Add a high score
-app.post('/api/highscore', (req, res) => {
+app.post('/api/highscore', async (req, res) => {
     const { name, wins } = req.body;
-    db.run(`INSERT INTO highscores (name, wins) VALUES (?, ?)`, [name, wins], function(err) {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
-        res.status(201).json({ id: this.lastID });
-    });
+    try {
+        const result = await pool.query('INSERT INTO highscores (name, wins) VALUES ($1, $2) RETURNING id', [name, wins]);
+        res.status(201).json({ id: result.rows[0].id });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
 // Get high scores
-app.get('/api/highscores', (req, res) => {
-    db.all(`SELECT * FROM highscores ORDER BY wins DESC`, [], (err, rows) => {
-        if (err) {
-            return res.status(500).json({ error: err.message });
-        }
-        res.json(rows);
-    });
+app.get('/api/highscores', async (req, res) => {
+    try {
+        const result = await pool.query('SELECT * FROM highscores ORDER BY wins DESC');
+        res.json(result.rows);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: error.message });
+    }
 });
 
-app.listen(PORT, () => {
-    console.log(`Server is running on port ${PORT}`);
+// Initialize the database (Create the table if it doesn't exist)
+app.listen(PORT, async () => {
+    try {
+        await pool.query(`
+            CREATE TABLE IF NOT EXISTS highscores (
+                id SERIAL PRIMARY KEY,
+                name TEXT NOT NULL,
+                wins INTEGER NOT NULL
+            )
+        `);
+        console.log(`Server is running on port ${PORT}`);
+    } catch (error) {
+        console.error(error);
+    }
 });
