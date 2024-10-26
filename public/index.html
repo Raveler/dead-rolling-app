@@ -34,13 +34,6 @@
     <button id="resetButton">Reset Game</button>
     <div id="result"></div>
 
-    <div>
-        <h2>Submit Your Win</h2>
-        <input type="text" id="playerName" placeholder="Enter your name" />
-        <input type="number" id="wins" value="1" min="1" />
-        <button id="submitScoreButton">Submit Score</button>
-    </div>
-
     <div id="highscoreList">
         <h2>High Scores</h2>
         <ul id="scores"></ul>
@@ -51,9 +44,19 @@
             const response = await fetch('/api/roll');
             const data = await response.json();
             document.getElementById('currentNumber').innerText = `Current Number: ${data.currentNumber}`;
-            
+
             if (data.result === 1) {
+                const name = prompt("You rolled a 1! Enter your name to record your loss:");
+                if (name) {
+                    // Submit the high score (loss)
+                    await fetch('/api/highscore', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ name, wins: 0 }) // Set wins to 0 for a loss
+                    });
+                }
                 document.getElementById('result').innerText = `You rolled a 1! You must chug a beer! 🍻`;
+                loadHighScores(); // Refresh the high score list
             } else {
                 document.getElementById('result').innerText = `You rolled: ${data.result}`;
             }
@@ -67,23 +70,6 @@
             document.getElementById('result').innerText = '';
         });
 
-        document.getElementById('submitScoreButton').addEventListener('click', async () => {
-            const name = document.getElementById('playerName').value;
-            const wins = parseInt(document.getElementById('wins').value);
-
-            if (name) {
-                const response = await fetch('/api/highscore', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ name, wins })
-                });
-
-                if (response.ok) {
-                    loadHighScores();
-                }
-            }
-        });
-
         async function loadHighScores() {
             const response = await fetch('/api/highscores');
             const scores = await response.json();
@@ -91,7 +77,7 @@
             scoresList.innerHTML = '';
             scores.forEach(score => {
                 const li = document.createElement('li');
-                li.textContent = `${score.name}: ${score.wins} wins`;
+                li.textContent = `${score.name}: ${score.total_losses} losses`;
                 scoresList.appendChild(li);
             });
         }
