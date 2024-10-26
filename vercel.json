@@ -1,0 +1,14 @@
+{
+  "version": 2,
+  "builds": [{ "src": "api/roll.js", "use": "@vercel/node" }],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "/api/roll.js" },
+    { "src": "/", "dest": "/public/index.html" }
+  ],
+  "public": "public",
+  "projectSettings": {
+    "framework": "none",
+    "name": "dead-rolling-app",
+    "rootDirectory": "."
+  }
+}

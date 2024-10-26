@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dead Rolling Game</title>
+</head>
+<body>
+  <h1>Dead Rolling Game</h1>
+  <p>Roll to see who gets the lowest roll!</p>
+  <button id="rollButton">Roll!</button>
+  <ul id="rollResults"></ul>
+
+  <script>
+    const rollButton = document.getElementById("rollButton");
+    const rollResults = document.getElementById("rollResults");
+
+    rollButton.addEventListener("click", async () => {
+      const response = await fetch("/api/roll");
+      const result = await response.json();
+      
+      const resultItem = document.createElement("li");
+      resultItem.textContent = `Player ${result.player}: Rolled ${result.roll}`;
+      rollResults.appendChild(resultItem);
+      
+      if (result.eliminated) {
+        alert(`Player ${result.eliminated} is out!`);
+      }
+      if (result.winner) {
+        alert(`Player ${result.winner} wins the game!`);
+        rollResults.innerHTML = ""; // Reset the game
+      }
+    });
+  </script>
+</body>
+</html>
