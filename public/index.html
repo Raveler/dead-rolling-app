@@ -7,18 +7,21 @@
     <style>
         body {
             font-family: Arial, sans-serif;
-            background-image: url('wezzzze.jpg'); /* Set the background image */
-            background-repeat: repeat; /* Make the image repeat */
-            background-size: auto; /* Adjust size if necessary */
+            background-image: url('../wezzzze.jpg');
+            background-repeat: repeat;
+            background-size: auto;
             margin: 0;
             padding: 20px;
-            color: white; /* Change text color for better visibility */
+            color: white;
         }
         button {
             margin-top: 10px;
         }
         #result {
             margin-top: 20px;
+        }
+        #highscoreList {
+            margin-top: 30px;
         }
     </style>
 </head>
@@ -30,6 +33,18 @@
     <button id="rollButton">Roll the Dice!</button>
     <button id="resetButton">Reset Game</button>
     <div id="result"></div>
+
+    <div>
+        <h2>Submit Your Win</h2>
+        <input type="text" id="playerName" placeholder="Enter your name" />
+        <input type="number" id="wins" value="1" min="1" />
+        <button id="submitScoreButton">Submit Score</button>
+    </div>
+
+    <div id="highscoreList">
+        <h2>High Scores</h2>
+        <ul id="scores"></ul>
+    </div>
 
     <script>
         document.getElementById('rollButton').addEventListener('click', async () => {
@@ -51,6 +66,38 @@
             document.getElementById('currentNumber').innerText = `Current Number: ${data.currentNumber}`;
             document.getElementById('result').innerText = '';
         });
+
+        document.getElementById('submitScoreButton').addEventListener('click', async () => {
+            const name = document.getElementById('playerName').value;
+            const wins = parseInt(document.getElementById('wins').value);
+
+            if (name) {
+                const response = await fetch('/api/highscore', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ name, wins })
+                });
+
+                if (response.ok) {
+                    loadHighScores();
+                }
+            }
+        });
+
+        async function loadHighScores() {
+            const response = await fetch('/api/highscores');
+            const scores = await response.json();
+            const scoresList = document.getElementById('scores');
+            scoresList.innerHTML = '';
+            scores.forEach(score => {
+                const li = document.createElement('li');
+                li.textContent = `${score.name}: ${score.wins} wins`;
+                scoresList.appendChild(li);
+            });
+        }
+
+        // Load high scores when the page loads
+        window.onload = loadHighScores;
     </script>
 </body>
 </html>
