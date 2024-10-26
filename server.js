@@ -41,10 +41,15 @@ app.post('/api/highscore', async (req, res) => {
     }
 });
 
-// Get high scores
+// Get high scores grouped by name
 app.get('/api/highscores', async (req, res) => {
     try {
-        const result = await pool.query('SELECT * FROM highscores ORDER BY wins DESC');
+        const result = await pool.query(`
+            SELECT name, COUNT(*) as total_losses
+            FROM highscores
+            GROUP BY name
+            ORDER BY total_losses DESC
+        `);
         res.json(result.rows);
     } catch (error) {
         console.error(error);
